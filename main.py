@@ -1,31 +1,32 @@
-import sqlite3
 import pandas as pd
 import streamlit as st
+import json
 
-# Streamlit app
 def main():
-    st.title("Attendance Database Viewer")
+    st.title("Attendance JSON Viewer")
 
-    # Connect to SQLite database
-    db_path = 'attendance.db'  # Update with the correct path to your SQLite database
-    conn = sqlite3.connect(db_path)
+    # File uploader for JSON file
+    uploaded_file = st.file_uploader("Upload the attendance.json file", type=["json"])
 
-    # Query options
-    st.sidebar.header("Query Options")
-    table_name = st.sidebar.text_input("Enter Table Name", value="attendance")
+    if uploaded_file is not None:
+        try:
+            # Load JSON data
+            json_data = json.load(uploaded_file)
+            
+            # Check JSON structure
+            if isinstance(json_data, list):  # JSON file contains a list of records
+                df = pd.DataFrame(json_data)
+            elif isinstance(json_data, dict):  # JSON file contains a dictionary
+                df = pd.json_normalize(json_data)
+            else:
+                st.error("Unsupported JSON structure. Please upload a valid JSON file.")
+                return
 
-    # Query the database
-    try:
-        if st.sidebar.button("Show Data"):
-            query = f"SELECT * FROM {table_name}"
-            data = pd.read_sql_query(query, conn)
-            st.write(f"Data from the `{table_name}` table:")
-            st.dataframe(data)  # Display the data as a table
-    except Exception as e:
-        st.error(f"Error querying the database: {e}")
-
-    # Close the connection
-    conn.close()
+            # Display the DataFrame
+            st.write("Attendance Data:")
+            st.dataframe(df)
+        except Exception as e:
+            st.error(f"Error processing the JSON file: {e}")
 
 if __name__ == "__main__":
     main()
